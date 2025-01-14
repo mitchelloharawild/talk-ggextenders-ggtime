@@ -23,12 +23,11 @@ unified grammar of temporal graphics. The ggtime package extends ggplot2
 with new grammatical elements for presenting temporal patterns. These
 elements can be composed together to create familiar visual idioms, and
 also recombined in new ways to create new informative plots. Temporal
-data requires special handling to highlight patterns arising from
-calender systems (much like the nuances of spatial, graph, and
-uncertainty visualisation). In this ggextenders talk I will introduce
-some design-stage development of the ggtime package, and pose some
-technical discussion questions about engineering and designing ggplot2
-extensions.
+visualisation requires special handling to accomodate calendrical quirks 
+(similar to spatial, graph, and uncertainty visualisation). 
+In this ggextenders talk I will introduce some design-stage development
+of the ggtime package, and pose some technical discussion questions about 
+engineering and designing ggplot2 extensions.
 
 #### Structure
 
