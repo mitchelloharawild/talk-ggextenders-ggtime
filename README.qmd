@@ -23,8 +23,9 @@ There are many visual idioms in place for plotting time series data, however lit
 
 * Background (time as a special dimension, relate mixtime/ggtime to distributional/ggdist)
 * Existing work producing visual idioms (feasts, sugrrants, gravitas)
-* Design philosophy: use grammar layers to apply time independently of other dimensions (ggtime :heart: ggdist)
+* Design philosophy: use grammar layers to extend time independently of other layers (ggtime :heart: ggdist)
 * Design decision discussions
+
   Start with the question prompt, along with some related work and necessary info.
   
   * Design decision 1: implementation of `coord_calender()`

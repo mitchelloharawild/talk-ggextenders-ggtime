@@ -36,11 +36,13 @@ engineering and designing ggplot2 extensions.
 
 - Existing work producing visual idioms (feasts, sugrrants, gravitas)
 
-- Design philosophy: use grammar layers to apply time independently of
-  other dimensions (ggtime :heart: ggdist)
+- Design philosophy: use grammar layers to extend time independently of
+  other layers (ggtime :heart: ggdist)
 
-- Design decision discussions Start with the question prompt, along with
-  some related work and necessary info.
+- Design decision discussions
+
+  Start with the question prompt, along with some related work and
+  necessary info.
 
   - Design decision 1: implementation of `coord_calender()`
   - Design decision 2: `geom_time_line()` or
