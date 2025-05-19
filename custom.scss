@@ -187,3 +187,10 @@ span.term {
   position: relative;
   top: 1em;
 }
+
+.fragment-remove .fragment.fade-out.visible {
+    display: none;
+    height:0px;
+    line-height: 0px;
+    font-size: 0px;
+}

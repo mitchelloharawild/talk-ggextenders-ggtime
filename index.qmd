@@ -1,0 +1,1575 @@
+---
+from: markdown+emoji
+execute: 
+  cache: true
+format: 
+  letterbox-revealjs:
+    theme: custom.scss
+    progress: false
+    menu: false
+    width: 1280
+    height: 720
+filters:
+  - custom-callouts
+callout-appearance: simple
+---
+
+```{r}
+#| include: false
+# library(ggtime)
+library(dplyr)
+```
+
+## {}
+
+::: columns
+::: {.column width="37.5%"}
+:::
+::: {.column width="60%"}
+
+::: {.title data-id="title"}
+Designing ggtime:
+
+[A grammar of temporal graphics]{style="font-size: 54px"}
+:::
+
+::: {.dateplace}
+12th February 2025 @ ggextenders club
+:::
+
+Mitchell O'Hara-Wild, Monash University
+Cynthia Huang, Monash University
+
+::: {.callout-link}
+
+## Useful links
+
+![](resources/forum.svg){.icon} [social.mitchelloharawild.com](https://social.mitchelloharawild.com/)
+
+![](resources/projector-screen-outline.svg){.icon} [slides.mitchelloharawild.com/ggextenders-ggtime](https://slides.mitchelloharawild.com/ggextenders-ggtime)
+
+![](resources/github.svg){.icon} [mitchelloharawild/talk-ggextenders-ggtime](https://github.com/mitchelloharawild/talk-ggextenders-ggtime)
+
+:::
+
+:::
+:::
+
+![](backgrounds/amjd-rdwan--MDJDYKQz6E-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Discussion presentation
+
+This talk is more about *designing* ggplot2 extensions than temporal visualisation.
+
+The `{ggtime}` package has a maturing design, and is in early software development.
+
+::: {.fragment .fade-up}
+::: {.callout-note}
+
+## Today's presentation
+
+I'll share some `{ggtime}` design elements, and prompt discussion questions for some design challenges.
+
+:::
+:::
+
+
+::: {.fragment .fade-up}
+:::{.callout-tip icon=false}
+## :wave: Later discussion
+
+There won't be enough *time* to discuss everything today.
+
+I'll share discussion links in the slides, e.g. [discussions#79](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/79)
+
+Please join the conversation afterwards :heart:
+
+[github://ggplot2-extenders/ggplot-extension-club/discussions](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions)
+
+:::
+:::
+
+<!-- Thinking caps on, I'll be asking questions! -->
+
+<!-- This presentation is less about presenting ggtime, but more about discussing design. -->
+
+<!-- A bit of give and take, I'll give some philosophy and take some answers to my questions :P -->
+
+:::
+:::
+
+![](backgrounds/wolf-zimmermann-6sf5rf8QYFE-unsplash.jpg){.image-left}
+
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Scope of ggplot2 extensions
+
+Tangential to [discussions#77](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/77)
+
+A clear scope for ggplot extensions helps:
+
+* :dart: define project goals
+* :bar_chart: highlight usage / applications
+* :spider: prevent feature creep
+* :hammer_and_wrench: ease code maintenance
+* :cupcake: promote good design
+
+
+:::{.fragment .fade-up}
+
+:::{.callout-tip}
+## The scope of ggtime
+
+It's all about time (and only about time)!
+:::
+
+:::
+
+
+:::
+:::
+
+![](backgrounds/steven-wright-mq8QogEBy00-unsplash.jpg){.image-right}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Visualising *special* dimensions
+
+Several types of data require unique care.
+
+::: {.incremental}
+* :four_leaf_clover: uncertainty (`{distributional}` / `{ggdist}`)
+* :spider_web: graph (`{tidygraph}` / `{ggraph}`)
+* :world_map: space (`{sf}` / `{ggplot2}`)
+* :hourglass: time (`{mixtime}` / `{ggtime}`)
+* :book: language (NA)
+:::
+
+:::{.fragment .fade-up}
+
+:::{.callout-tip}
+## What makes these dimensions "special"?
+
+An open question! Some ideas:
+
+* They incorporate human abstractions (often cultural).
+* Each have attributes that don't match the data's length.
+
+:::
+
+:::
+
+
+:::
+:::
+
+![](backgrounds/david-pisnoy-46juD4zY1XA-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Visualising temporal data
+
+Time is comparatively simple dimension, it is:
+
+* continuous
+* ordered
+* univariate / singular
+
+:::{.fragment .fade-up}
+::: {.callout-tip}
+
+## ggplot2 already supports temporal data
+
+Simply map a date (`Date`), datetime (`POSIXct`), or even time (`hms`) to any aesthetic. Scales to adjust temporal labels and breaks exist in ggplot2:
+
+* `scale_*_date()` for `Date`, 
+* `scale_*_datetime()` for `POSIXct`, 
+* `scale_*_time()` for `hms`.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/andrik-langfield-0rTCXZM7Xfo-unsplash.jpg){.image-right}
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### So why is ggtime needed?
+
+::: {.fragment .fade-in}
+
+Temporal data/patterns align with calendars.
+
+:::
+
+::: {.fragment .fade-up}
+::: {.callout-note icon=false}
+## :calendar: Calendrical time
+
+Calendars complicate temporal visualisation! 
+
+While time itself is simple, **calendrical patterns are complex**!
+
+:::{.incremental}
+
+* Calender systems (Gregorian, Islamic, Chinese, Jewish, ...)
+* Timezones (local/civil time, absolute time)
+* Granularities (hourly, daily, weekly, monthly, annual, ...)
+* Corrections (leap years, leap seconds)
+* Seasonality (weekdays/weekends, financial years, holidays)
+
+:::
+:::
+:::
+
+
+::: {.fragment .fade-up}
+::: {.callout-important icon=false}
+## :alarm_clock: ggtime is calendrical
+
+`{ggtime}` aligns physical time with calendrical structure (e.g. timezones, granularity, cycles, ...).
+
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-left}
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+
+::: {.column width="60%"}
+
+### Common temporal graphics
+
+These 'visual idioms' of time series plots can be categorised into several groups:
+
+* **Linear time plots**
+* **Circular time plots**
+* and more... (no time to discuss these)
+
+
+::: {.callout-tip}
+
+## A grammar of temporal graphics
+
+`{ggtime}` aims to re-express these time series plots with common elements of a grammar.
+
+Those elements can be further remixed to create other useful temporal visualisations.
+
+:::
+
+:::
+:::
+
+![](backgrounds/nathan-dumlao-5Hl5reICevY-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+
+::: {.column width="60%"}
+
+### Linear time plots
+
+These show time as a continuous dimension.
+
+:::
+:::
+
+![](backgrounds/nathan-dumlao-5Hl5reICevY-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Time plots
+
+Maps time to the x/y-axis.
+
+They reveal trends, seasons, cycles, outliers, and more.
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * **x: time**
+  * y: observations
+* coord: cartesian
+
+:::
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+library(fpp3)
+pbs_scripts <- tsibbledata::PBS |>
+  summarise(Scripts = sum(Scripts))
+pbs_scripts |>
+  autoplot(Scripts)
+```
+
+:::
+
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Forecast plots
+
+These are simply time plots.
+
+They just happen to show forecasts, or uncertain values.
+
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * x: time
+  * y: observations
+  * **ydist: forecast** (:heart: ggdist)
+* coord: cartesian
+
+:::
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+pbs_scripts |> 
+  model(ETS(Scripts)) |> 
+  forecast() |> 
+  autoplot(pbs_scripts) +
+  theme(legend.position = "bottom")
+```
+
+:::
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+### Multiple time plots
+
+Most data is long and across many series.
+
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * x: time
+  * y: observations
+  * **colour: series**
+* **coord: cartesian**
+
+:::
+
+:::
+
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+sugrrants::hourly_peds |> 
+  filter(Date < as.Date("2016-05-01")) |> 
+  ggplot(aes(x = Date_Time, y = Hourly_Counts, colour = Sensor_Name)) + 
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+:::
+
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Calendar plots
+
+Uses calendar layouts (multiple rows) to partially resolve long series.
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * x: time
+  * y: observations
+  * colour: series
+* coord: cartesian
+* **facet: calendar**
+
+:::
+
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+library(sugrrants)
+hourly_peds %>%
+  filter(Date < as.Date("2016-05-01")) %>% 
+  ggplot(aes(x = Time, y = Hourly_Counts, colour = Sensor_Name)) +
+  geom_line() +
+  facet_calendar(~ Date) + # a variable contains dates
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+:::
+
+:::
+
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+
+::: {.column width="60%"}
+
+### Circular time plots
+
+Transforms time to reveal circular patterns.
+
+:::
+:::
+
+![](backgrounds/nathan-dumlao-5Hl5reICevY-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Seasonal plots
+
+Wraps seasons to align years.
+
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * **x: season** (e.g. `hms`)
+  * y: observations
+  * colour: time
+* coord: cartesian
+
+:::
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+pbs_scripts |>
+  gg_season(Scripts)
+```
+
+:::
+
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Seasonal plots
+
+They are often shown in polar.
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * x: season
+  * y: observations
+  * colour: time
+* **coord: polar**
+
+:::
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+pbs_scripts |>
+  gg_season(Scripts, polar = TRUE)
+```
+
+:::
+
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+
+### Seasonal sub-series
+
+facets seasons to show changes over time.
+
+
+::: {.callout-tip icon=false}
+## :atom_symbol: Notable grammar elements
+
+
+* mapping: 
+  * x: time
+  * y: observations
+* coord: cartesian
+* **facet: season**
+
+:::
+
+
+:::
+
+::: {.column width="60%"}
+
+```{r}
+#| code-fold: true
+#| echo: true
+#| fig-height: 8.5
+pbs_scripts |>
+  gg_subseries(Scripts)
+```
+
+:::
+
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Designing ggtime
+
+::: {.callout-tip icon=false}
+## :dart: Goals
+
+* Decompose temporal graphics into modular elements.
+* Provide grammar extensions, and plot helpers using them.
+* Encourage users to experiment beyond standard plots.
+* Interoperability with other ggplot2 extensions (e.g. ggdist)
+* Overcome current limitations of time series graphics.
+
+:::
+
+
+<!-- ::: {.callout-important icon=false} -->
+<!-- ## :stop_sign: Current problems of ggplot for time series -->
+
+<!-- * Aligning mixed granularities -->
+
+<!-- ::: -->
+
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Data
+
+`Date` & `POSIXct` assumes a Gregorian calendar with day or second precision.
+
+`{mixtime}` directly associates time with a calendar to support:
+
+:::{style="font-size:80%;"}
+* Mixed calendars (Gregorian, astronomical, ...)
+* Mixed granularities (daily, weekly, monthly, ...)
+* Local/civil time and global/absolute time operations
+  * e.g. `"2 aweeks"` vs `"2 weeks"` for absolute/civil
+* Censored calendars (trading days, working hours, ...)
+* Origin-less time (time of day, month of year, ...)
+* and *much* more...
+:::
+
+<!-- all at the same time, in the same vector :) -->
+
+<!-- Much like `{distributional}` supporting `{ggtime}` with many shapes and parameterisations all in the same vector. -->
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+
+## {.fragment-remove .dense-list}
+
+```{css}
+.dense-list ul, .dense-list details {
+  margin-bottom: 0 !important;
+}
+```
+
+
+::: columns
+
+::: {.column width="60%"}
+
+### Geometries / Layers
+
+* `geom_time_line()`
+
+  ::: {.fragment .fade-out fragment-index=2}
+  A time-aware version of `geom_line()`. Shows calendrical jumps with dashed lines and/or open and closed circles.
+  
+  ```{r}
+  #| code-fold: true
+  #| echo: true
+  
+  tz_shift <- as_tibble(tsibbledata::gafa_stock) |>
+    filter(
+      (Symbol == "AAPL" & Date <= "2014-01-15") | 
+        (Symbol == "GOOG" & Date <= "2014-01-13")
+    ) |>
+    mutate(Date = Sys.Date() + hours(c(1:3, 3:9, 1:2, 4:9)), DST = ifelse(Symbol == "AAPL", "DST Ends", "DST Begins")) |> 
+    slice(1:3, 3:12, 12:n()) |> 
+    mutate(
+      open = duplicated(Open),
+      closed = c(open[-1], FALSE),
+      Date = Date + open*3600*((DST=="DST Begins")*2-1)
+    ) 
+  
+  tz_shift |> 
+    ggplot(aes(x = Date, y = Close)) + 
+    geom_path(aes(group = cumsum(open))) + 
+    geom_path(linetype = "dashed", data = filter(tz_shift, open | closed)) +
+    geom_point(aes(shape = closed), data = filter(tz_shift, open | closed), size = 3) +
+    facet_wrap(vars(DST), ncol = 2, scales = "free_y") + 
+    scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1)) + 
+    guides(shape = "none")
+  ```
+  
+  :::
+
+<!-- ::: {.fragment .fade-up fragment-index=1} -->
+<!-- * `geom_time_range()` -->
+
+<!--   ::: {.fragment .fade-out fragment-index=2} -->
+<!--   Shows ranges of time with a rectangle. -->
+
+<!--   ```{r} -->
+<!--   #| code-fold: true -->
+<!--   #| echo: true -->
+<!--   tsibbledata::gafa_stock |>  -->
+<!--     filter(Symbol == "GOOG") |>  -->
+<!--     filter(yearmonth(Date) == yearmonth("2014 Jun")) |>  -->
+<!--     ggplot(aes(x = Date)) +  -->
+<!--     tidyquant::geom_candlestick(aes(open = Open, high = High, low = Low, close = Close)) -->
+<!--   ``` -->
+
+<!--   ::: -->
+<!-- ::: -->
+
+
+::: {.fragment .fade-up fragment-index=2}
+* `geom_time_candle()`
+
+  ::: {.fragment .fade-out fragment-index=3}
+  Shows calendrical value changes/ranges (e.g. daily, weekly, monthly, annual).
+  
+  ```{r}
+  #| code-fold: true
+  #| echo: true
+  #| fig-height: 3.5
+  tsibbledata::gafa_stock |> 
+    filter(Symbol == "GOOG") |> 
+    filter(yearmonth(Date) == yearmonth("2014 Jun")) |> 
+    ggplot(aes(x = Date)) + 
+    tidyquant::geom_candlestick(aes(open = Open, high = High, low = Low, close = Close)) + 
+    scale_x_date(date_labels = "%d %b %Y") +
+    labs(y = "GOOG Stock")
+  ```
+  :::
+:::
+
+::: {.fragment .fade-up fragment-index=3}
+:::{.callout-note}
+## Cheeky discussion: are these 'layers' or 'geometries'?
+
+Much like `geom_boxplot()`, these are compositions of `geom`, `stat`, and `position`.
+
+Following [discussions#58](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/58), I'm tempted to expose and promote `layer_*()` aliases for these.
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 1 (alignment)
+
+::: {.fragment .fade-out fragment-index=1}
+Recall the `geom_time_line()` example handling jumps in time from daylight savings.
+:::
+
+::: {.fragment .fade-out fragment-index=2}
+```{r}
+#| fig-height: 3.5
+tz_shift |> 
+  ggplot(aes(x = Date, y = Close)) + 
+  geom_path(aes(group = cumsum(open))) + 
+  geom_path(linetype = "dashed", data = filter(tz_shift, open | closed)) +
+  geom_point(aes(shape = closed), data = filter(tz_shift, open | closed), size = 3) +
+  facet_wrap(vars(DST), ncol = 2, scales = "free_y") + 
+  scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1)) + 
+  guides(shape = "none")
+```
+:::
+
+::: {.fragment .fade-out fragment-index=1}
+This is an **alignment of timezone changes** (also known as civil or local time).
+:::
+
+::: {.fragment .fade-up fragment-index=1}
+::: {.callout-note icon=false}
+## :clock230: Timezone alignment in the grammar
+
+Where should this 'jumping' behaviour live in the grammar?
+
+* directly in `geom_time_line()`?
+* `position_time_civil()`/`position_time_absolute()`?
+* an option of `scale_*_mixtime()`?
+* somewhere else?
+:::
+:::
+
+::: {.fragment .fade-up fragment-index=2}
+What about other jumps, e.g. working hours?
+
+```{r}
+#| fig-height: 3
+bank_calls |> 
+  head(4000) |> 
+  autoplot()
+```
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 1 (alignment)
+
+::: {.fragment .fade-out fragment-index=1}
+`{ggtime}` will also **align granularities**.
+
+Imagine Australian births (annual) compared with total births by state (monthly).
+:::
+
+```{r}
+recent_births <- aus_births |> 
+  filter(Month >= yearmonth("2010 Jan"))
+
+aus_total_births <- recent_births |> 
+  index_by(year = year(Month)) |> 
+  summarise(Births = sum(Births))
+
+recent_births |>
+  summarise(Births = sum(Births)) |> 
+  ggplot(aes(x = Month, y = Births)) + 
+  geom_line() + 
+  geom_line(aes(x = make_date(year = year), y = Births / 12), data = aus_total_births, colour = "steelblue")
+```
+
+::: {.fragment .fade-up fragment-index=1}
+
+::: {.callout-note icon=false}
+
+## :date: Temporal alignment across granularities
+
+When constrained to Date and POSIXct, left alignment is commonly used for less-frequent granularities.
+
+e.g. `2025-01-01` can be 2025, Jan 2025, or Jan 1 2025.
+
+Consequently, plotting is also often left-aligned.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 1 (alignment)
+
+`{ggtime}` center aligns granularities.
+
+```{r}
+recent_births <- aus_births |> 
+  filter(Month >= yearmonth("2010 Jan"))
+
+aus_total_births <- recent_births |> 
+  index_by(year = year(Month)) |> 
+  summarise(Births = sum(Births))
+
+recent_births |>
+  summarise(Births = sum(Births)) |> 
+  ggplot(aes(x = Month, y = Births)) + 
+  geom_line() + 
+  geom_line(aes(x = make_date(year = year, month = 6), y = Births / 12), data = aus_total_births, colour = "darkgreen")
+```
+
+::: {.fragment .fade-up fragment-index=1}
+
+::: {.callout-note icon=false}
+
+## :date: Aligning temporal granularities
+
+A `time_align` option is for left, center, or right alignment.
+
+Where should this option belong? position? scale?
+
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 1 (alignment)
+
+`{ggtime}` could also **align cycles**.
+
+Cycles are repeating patterns with an irregular duration (and shape).
+
+::: {.fragment .fade-out fragment-index=1}
+```{r}
+month_progress <- unlist(lapply(lubridate:::N_DAYS_IN_MONTHS, \(x) seq(1, x)/x))
+
+time <- make_date(year = 2025) + 0:364
+# y <- rnorm(length(month_progress), mean = month_progress^4, sd = month_progress*0.1)
+y <- sin(month_progress*2*pi) + rnorm(365, sd = 0.1)
+
+tibble(time, y, month_progress) |> 
+  ggplot(aes(x = time - floor_date(time, "month"), y = y, group = month(time))) + 
+  geom_line(aes()) +
+  facet_grid(rows = vars(month(time, label = TRUE))) + 
+  labs(x = "Day of month")
+```
+:::
+
+::: {.fragment .fade-in fragment-index=1}
+
+Warping cycles to have the same length as "% of cycle" can help compare cycle shapes.
+
+::: {.fragment .fade-out fragment-index=2}
+```{r}
+month_progress <- unlist(lapply(lubridate:::N_DAYS_IN_MONTHS, \(x) seq(1, x)/x))
+
+time <- make_date(year = 2025) + 0:364
+# y <- rnorm(length(month_progress), mean = month_progress^4, sd = month_progress*0.1)
+y <- sin(month_progress*2*pi) + rnorm(365, sd = 0.1)
+
+tibble(time, y, month_progress) |> 
+  ggplot(aes(x = month_progress, y = y, group = month(time))) + 
+  geom_line(aes()) +
+  facet_grid(rows = vars(month(time, label = TRUE))) + 
+  labs(x = "Percentage of month")
+```
+:::
+:::
+
+::: {.fragment .fade-up fragment-index=2}
+
+::: {.callout-note icon=false}
+
+## :date: Temporal alignment across cycles
+
+Two arguments are proposed (like `breaks` and `date_breaks`):
+
+* `warp` (stretch time between specific time points)
+* `time_warp` (stretch time by calendar, e.g. `"1 month"`)
+
+Does this fit best in `scale_*_mixtime()`?
+
+Perhaps `data` pre-processing, a `position` or `stat`?
+
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Scales
+
+Much like ggplot2 temporal scales, `{ggtime}` has a unified `scale_*_mixtime()` with:
+
+:::{style="font-size:80%;"}
+
+* `time_labels` (strftime-based for Gregorian)
+* `time_breaks` (calendar-based, e.g. `"3 months"`)
+:::
+
+::: {.fragment .fade-up}
+
+The scales (pending [discussions#79](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/79)) may also control calendrical alignment for:
+
+* timezones (`time_local` boolean)
+* granularity (`time_align` 0-1)
+* cycles (`warp` and `time_warp`)
+
+<!-- * wrapping (time -> origin-less time? maybe just coord?) -->
+
+:::
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Facets / Coordinates
+
+Two calendar-plot options are proposed:
+
+* `facet_calendar()`
+* `coord_calendar()`
+
+:::{.callout-tip icon=false}
+## :date: Calendar layouts for temporal graphics
+
+Calendars are useful for plotting long time series, they:
+
+* use a familiar layout for quickly identifying dates.
+* reveal short annual patterns (e.g. holidays and events).
+* have a better aspect-ratio for dense time axis. 
+* more effectively use vertical space.
+
+Calendars are not limited to the standard weekly layout, but are hierarchical in nature over any calendar structure.
+:::
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Calendar facets
+
+[Facets separate each day (or calendar period).]{style="font-size:80%"}
+
+```{r}
+#| fig-height: 8.5
+library(sugrrants)
+hourly_peds %>%
+  filter(Date < as.Date("2016-05-01")) %>% 
+  ggplot(aes(x = Time, y = Hourly_Counts, colour = Sensor_Name)) +
+  geom_line() +
+  facet_calendar(~ Date) + # a variable contains dates
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Calendar coordinates
+
+[Each day (or calendar period) shares the same panel.]{style="font-size:80%"}
+
+```{r}
+#| fig-height: 8.5
+library(sugrrants)
+(hourly_peds %>%
+  filter(Date < as.Date("2016-05-01"), Sensor_ID == 9) %>% 
+  frame_calendar(x = Time, y = Hourly_Counts, date = Date) %>% 
+  ggplot(aes(x = .Time, y = .Hourly_Counts, group = Date)) +
+  geom_path() +
+  theme(legend.position = "bottom")) |> 
+  prettify()
+```
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Calendar coordinates
+
+Using coordinates offers many benefits:
+
+* faster to compute / plot
+* dense layout options
+* continuity of time between days
+
+However creating a new coordinate system for calendars is intimidating... :sweat_smile:
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 2 (coordinates)
+
+:::{.fragment .fade-out fragment-index=1}
+
+My current design for `coord_calendar()` is to rearrange an inner coordinate system.
+
+This creates a nested or hierarchical coordinate system -- interesting!
+:::
+
+::: {.callout-note icon=false}
+
+## :chart_with_upwards_trend: Inner cartesian coordinates (default)
+`p + coord_calendar(coord = coord_cartesian())`
+
+* simplify and replicate `coord` foreground, background, and axis into calendar layout with gtable.
+* cut and reposition data (or grobs) into calendar layout.
+* adds calendar specific annotations for days, months, etc.
+:::
+
+:::{.fragment .fade-up fragment-index=1}
+
+::: {.callout-tip icon=false}
+
+## :question: Is this technically feasible in ggplot2?
+
+Sorry @teunbrand - I am being especially... *creative*... here.
+
+Perhaps there are better design alternatives?
+
+My primary concerns are with data access, and grob cutting.
+:::
+
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 2 (coordinates)
+
+There are some implementation challenges which could prevent this idea working:
+
+::: {.callout-caution icon=false}
+
+## :minidisc: Challenge 1: Data access
+
+The calendar layout requires access to `{mixtime}` data.
+
+How should the equivalent classed data be recovered after various plot stats and transformations?
+
+:::
+
+
+::: {.fragment .fade-up}
+::: {.callout-caution icon=false}
+
+## :scissors: Challenge 2: Grob cutting
+
+Visually cutting grobs seems the safest and best way to relocate layers into a calendar layout.
+
+Is rendering-style grob manipulation feasible in grid/ggplot2?
+
+For example, intersecting a bounding box with the grobs for each week to produce partial lines to the boundary?
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Wrapping circular time periods
+
+:::{.fragment .fade-out fragment-index=1}
+Recall the seasonal plot:
+:::
+
+```{r}
+pbs_scripts |>
+  gg_season(Scripts)
+```
+
+:::{.fragment .fade-out fragment-index=1}
+It features an origin-less time axis (e.g. month within year), which could be achieved with data pre-processing in `{mixtime}`.
+:::
+
+:::{.fragment .fade-up fragment-index=1}
+:::{.callout-tip}
+## Wrapping continuous time
+
+A better alternative is to retain the origin.
+
+Instead wrap observations over calendar periods.
+
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="60%"}
+
+### Wrapping circular time periods
+
+```{r}
+pbs_scripts |>
+  gg_season(Scripts, polar = TRUE)
+```
+
+:::{.callout-tip}
+## Wrapping continuous time
+
+A better alternative is to retain the origin.
+
+Instead wrap observations over calendar periods.
+
+Simply `+ coord_polar()` for polar coordinates.
+
+:::
+
+:::
+:::
+
+![](backgrounds/gglayers-1528209746.png){.image-right}
+
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design discussion 3 (wrapping)
+
+Where should temporal wrapping exist?
+
+* **data** pre-processing? (relatedly [ggperiodic](https://github.com/eliocamp/ggperiodic))
+* **position** data to overplot seasons
+  * could this cause issues with geometries between wraps?
+* **coordinate** like `coord_wrapped()`
+  * very similar to `coord_calendar()`, but without the calendar layout.
+  * possibly relevant for plotting shortest paths in `coord_sf()`
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design matrix of ggtime
+
+Leveraging calendar structures, ggtime adds
+
+::: {style="font-size:80%;"}
+
+* alignment of time zones (civil / absolute)
+* alignment of granularities (left / center / right)
+* alignment warping for cycles (ragged / justified)
+* layouts for calendars
+* wrapping for seasons
+:::
+
+These elements can be combined to produce familiar plots, or remixed to create more bespoke temporal visualisations.
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design matrix of ggtime
+
+Example: time plot (and forecast plot)
+
+::: {style="font-size:80%;"}
+
+* alignment of time zones (civil / **absolute**)
+* **alignment of granularities** (left / center / right)
+* alignment warping for cycles (ragged / justified)
+* layouts for calendars
+* wrapping for seasons
+:::
+
+
+```{r}
+#| fig-height: 4
+pbs_scripts |> 
+  model(ETS(Scripts)) |> 
+  forecast() |> 
+  autoplot(pbs_scripts) +
+  theme(legend.position = "bottom")
+```
+
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design matrix of ggtime
+
+Example: calendar plots
+
+::: {style="font-size:80%;"}
+
+* alignment of time zones (**civil** / absolute)
+* alignment of granularities (left / center / right)
+* alignment warping for cycles (ragged / justified)
+* **layouts for calendars**
+* wrapping for seasons
+:::
+
+```{r}
+#| fig-height: 4
+library(sugrrants)
+(hourly_peds %>%
+  filter(Date < as.Date("2016-05-01"), Sensor_ID == 9) %>% 
+  frame_calendar(x = Time, y = Hourly_Counts, date = Date) %>% 
+  ggplot(aes(x = .Time, y = .Hourly_Counts, group = Date)) +
+  geom_path() +
+  theme(legend.position = "bottom")) |> 
+  prettify()
+```
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Design matrix of ggtime
+
+Example: seasonal plots
+
+::: {style="font-size:80%;"}
+
+* alignment of time zones (**civil** / absolute)
+* alignment of granularities (left / center / right)
+* alignment warping for cycles (ragged / justified)
+* layouts for calendars
+* **wrapping for seasons**
+:::
+
+```{r}
+#| fig-height: 4
+pbs_scripts |>
+  gg_season(Scripts)
+```
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-left}
+
+
+
+## Thanks for your time!
+
+::: columns
+::: {.column width="60%"}
+
+::: {.callout-tip}
+## Continue the discussions on GitHub!
+
+I've created a ggtime discussion thread here: [discussions#79](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/79)
+
+There are reply threads for each discussed topic:
+
+* Alignment options
+* Calendar coordinates
+* Circular plotting
+
+I appreciate your contributions!
+
+:::
+
+::: {.callout-link}
+
+## Useful links
+
+![](resources/forum.svg){.icon} [social.mitchelloharawild.com](https://social.mitchelloharawild.com/)
+
+![](resources/projector-screen-outline.svg){.icon} [slides.mitchelloharawild.com/ggextenders-ggtime](https://slides.mitchelloharawild.com/ggextenders-ggtime)
+
+![](resources/github.svg){.icon} [mitchelloharawild/talk-ggextenders-ggtime](https://github.com/mitchelloharawild/talk-ggextenders-ggtime)
+:::
+
+:::
+:::
+
+![](backgrounds/meric-dagli-7NBO76G5JsE-unsplash.jpg){.image-right}
+
+## Unsplash credits
+
+::: {.callout-unsplash}
+
+## Thanks to these Unsplash contributors for their photos
+
+```{r unsplash}
+#| echo: FALSE
+#| cache: TRUE
+library(httr)
+library(purrr)
+unsplash_pattern <- ".*-(.{11})-unsplash\\.jpg.*"
+slides <- readLines("index.qmd")
+backgrounds <- slides[grepl("backgrounds/.+?unsplash.jpg", slides)]
+images <- unique(sub(".*\\(backgrounds/(.+?)\\).*", "\\1", backgrounds))
+images <- images[grepl(unsplash_pattern, images)]
+ids <- sub(unsplash_pattern, "\\1", images)
+
+get_unsplash_credit <- function(id) {
+  unsplash_url <- "https://api.unsplash.com/" 
+  my_response <- httr::GET(unsplash_url, path = c("photos", id), query = list(client_id=Sys.getenv("UNSPLASH_ACCESS")))
+  xml <- content(my_response)
+  
+  name <- xml$user$name
+  desc <- xml$description%||%"Photo"
+  sprintf(
+    "* %s: [%s%s](%s)",
+    name,
+    strtrim(desc,pmax(1, 60-nchar(name))),
+    if(nchar(desc)>(60-nchar(name))) "..." else "",
+    modify_url("https://unsplash.com/", path = file.path("photos", xml$id))
+  )
+}
+htmltools::includeMarkdown(paste0(map_chr(ids, get_unsplash_credit), collapse = "\n"))
+```
+
+:::

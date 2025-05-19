@@ -23,30 +23,34 @@ unified grammar of temporal graphics. The ggtime package extends ggplot2
 with new grammatical elements for presenting temporal patterns. These
 elements can be composed together to create familiar visual idioms, and
 also recombined in new ways to create new informative plots. Temporal
-visualisation requires special handling to accomodate calendrical quirks 
-(similar to spatial, graph, and uncertainty visualisation). 
-In this ggextenders talk I will introduce some design-stage development
-of the ggtime package, and pose some technical discussion questions about 
-engineering and designing ggplot2 extensions.
+data requires special handling to highlight patterns arising from
+calendar systems (much like the nuances of spatial, graph, and
+uncertainty visualisation). In this ggextenders talk I will introduce
+some design-stage development of the ggtime package, and pose some
+technical discussion questions about engineering and designing ggplot2
+extensions.
 
 #### Structure
 
-- Background (time as a special dimension, relate mixtime/ggtime to
-  distributional/ggdist)
+- 5 mins: Background (setup, time as a special dimension, relate
+  mixtime/ggtime to distributional/ggdist)
 
-- Existing work producing visual idioms (feasts, sugrrants, gravitas)
+- 5 mins: Existing work producing visual idioms (feasts, sugrrants,
+  gravitas)
 
-- Design philosophy: use grammar layers to extend time independently of
-  other layers (ggtime :heart: ggdist)
+- 5 mins: Design philosophy: use grammar layers to extend time
+  independently of other layers (ggtime :heart: ggdist)
 
-- Design decision discussions
+- 5 mins: ggtime demonstration (geom, scale, …)
+
+- 40 mins: Design decision discussions
 
   Start with the question prompt, along with some related work and
   necessary info.
 
-  - Design decision 1: implementation of `coord_calender()`
-  - Design decision 2: `geom_time_line()` or
+  - Design decision 1: `geom_time_line()` or
     `position_civil()`/`position_absolute()` for civil/absolute time
+  - Design decision 2: implementation of `coord_calendar()`
   - Design decision 3: circular time as a position? data pre-processing
 
 ### Format
